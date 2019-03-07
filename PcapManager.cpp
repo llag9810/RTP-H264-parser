@@ -1,18 +1,18 @@
 #include <iostream>
 #include <sys/socket.h>
 #include "PcapManager.h"
-#include "NetworkProtocols.h"
+#include "NetworkProtocolParser.h"
 
 PcapManager *PcapManager::instance;
 
-PcapManager *PcapManager::GetInstance() {
+PcapManager *PcapManager::get_instance() {
     if (instance == nullptr) {
         instance = new PcapManager;
     }
     return instance;
 }
 
-int PcapManager::Init(const std::string &dev, const ParseFunc &parsef, const LoopEndFunc &loopEndf) {
+int PcapManager::init(const std::string &dev, const ParseFunc &Parsef, const LoopEndFunc &LoopEndf) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap = pcap_open_live(dev.c_str(), BUFSIZ, 1, 2000, errbuf);
     if (pcap == nullptr) {
@@ -20,12 +20,12 @@ int PcapManager::Init(const std::string &dev, const ParseFunc &parsef, const Loo
         return -1;
     }
     linkType = pcap_datalink(pcap);
-    funcParse = parsef;
-    funcLoopEnd = loopEndf;
+    funcParse = Parsef;
+    funcLoopEnd = LoopEndf;
     return 0;
 }
 
-void PcapManager::Release() {
+void PcapManager::release() {
     if (instance != nullptr) {
         delete instance;
         instance = nullptr;
@@ -33,12 +33,12 @@ void PcapManager::Release() {
 
 }
 
-void PcapManager::ReadLoop() {
-    pcap_loop(pcap, 0, PcapManager::GetPacket, (u_char *) this);
+void PcapManager::read_loop() {
+    pcap_loop(pcap, 0, PcapManager::get_packet, (u_char *) this);
     funcLoopEnd();
 }
 
-void PcapManager::GetPacket(u_char *args, const struct pcap_pkthdr *header, const u_char *data) {
+void PcapManager::get_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *data) {
     auto manager = reinterpret_cast<PcapManager *>(args);
     const unsigned char *packet = data;
     int size = header->caplen;
@@ -46,7 +46,7 @@ void PcapManager::GetPacket(u_char *args, const struct pcap_pkthdr *header, cons
     switch (manager->linkType) {
         case DLT_EN10MB:
             eth_header eth;
-            if (!NetworkProtocols::eth_parser(packet, size, &eth)) {
+            if (!NetworkProtocolParser::eth_parser(packet, size, &eth)) {
                 return;
             }
 
@@ -63,12 +63,12 @@ void PcapManager::GetPacket(u_char *args, const struct pcap_pkthdr *header, cons
 //                fprintf(stdout, "skipping packet: not IPv4\n");
                 return;
             }
-            packet += NetworkProtocols::ETH_HEADER_LEN;
-            size -= NetworkProtocols::ETH_HEADER_LEN;
+            packet += NetworkProtocolParser::ETH_HEADER_LEN;
+            size -= NetworkProtocolParser::ETH_HEADER_LEN;
             break;
         case DLT_NULL:
             loop_header loop;
-            if (!NetworkProtocols::loop_parser(data, header->caplen, &loop)) {
+            if (!NetworkProtocolParser::loop_parser(data, header->caplen, &loop)) {
                 return;
             }
             if (loop.family != PF_INET) {
@@ -76,15 +76,15 @@ void PcapManager::GetPacket(u_char *args, const struct pcap_pkthdr *header, cons
                 return;
             }
 //            fprintf(stdout, "%d\n", loop.family);
-            packet += NetworkProtocols::LOOP_HEADER_LEN;
-            size -= NetworkProtocols::LOOP_HEADER_LEN;
+            packet += NetworkProtocolParser::LOOP_HEADER_LEN;
+            size -= NetworkProtocolParser::LOOP_HEADER_LEN;
             break;
         default:
 //            fprintf(stdout, "  skipping packet: unrecognized linktype %d\n", manager->linkType);
             return;
     }
     ip_header ip;
-    if (!NetworkProtocols::ip_parser(packet, size, &ip)) {
+    if (!NetworkProtocolParser::ip_parser(packet, size, &ip)) {
 //        fprintf(stdout, "skipping packet: not IP\n");
         return;
     }
@@ -101,7 +101,7 @@ void PcapManager::GetPacket(u_char *args, const struct pcap_pkthdr *header, cons
     size -= ip.header_size;
 
     udp_header udp;
-    if (!NetworkProtocols::udp_parser(packet, size, &udp)) {
+    if (!NetworkProtocolParser::udp_parser(packet, size, &udp)) {
         //        fprintf(stdout, "skipping packet: parse UDP failed.\n");
         return;
     }
@@ -110,14 +110,14 @@ void PcapManager::GetPacket(u_char *args, const struct pcap_pkthdr *header, cons
 //    ip.src[0], ip.src[1], ip.src[2], ip.src[3], udp.src, \
 //    ip.dst[0], ip.dst[1], ip.dst[2], ip.dst[3], udp.dst);
 
-    packet += NetworkProtocols::UDP_HEADER_LEN;
-    size -= NetworkProtocols::UDP_HEADER_LEN;
+    packet += NetworkProtocolParser::UDP_HEADER_LEN;
+    size -= NetworkProtocolParser::UDP_HEADER_LEN;
 
     rtp_header rtp;
-    if (!NetworkProtocols::rtp_parser(packet, size, &rtp)) {
+    if (!NetworkProtocolParser::rtp_parser(packet, size, &rtp)) {
         return;
     }
-    fprintf(stdout, "RTP ssrc = %u, seq = %d, payload type = %d, mark = %d\n", rtp.ssrc, rtp.seq, rtp.type, rtp.mark);
+//    fprintf(stdout, "RTP ssrc = %u, seq = %d, payload type = %d, mark = %d\n", rtp.ssrc, rtp.seq, rtp.type, rtp.mark);
     packet += rtp.header_size;
     size -= rtp.header_size;
 

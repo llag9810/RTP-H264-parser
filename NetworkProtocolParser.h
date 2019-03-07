@@ -1,5 +1,5 @@
-#ifndef RTP_PARSER_NETWORKPROTOCOLS_H
-#define RTP_PARSER_NETWORKPROTOCOLS_H
+#ifndef RTP_PARSER_NETWORKPROTOCOLPARSER_H
+#define RTP_PARSER_NETWORKPROTOCOLPARSER_H
 
 #include <cstdint>
 
@@ -45,7 +45,7 @@ typedef struct {
     uint16_t srcPort, dstPort;
 } rtp_info;
 
-class NetworkProtocols {
+class NetworkProtocolParser {
 public:
     static int ETH_HEADER_LEN;
     static int LOOP_HEADER_LEN;
@@ -63,4 +63,4 @@ private:
 };
 
 
-#endif //RTP_PARSER_NETWORKPROTOCOLS_H
+#endif //RTP_PARSER_NETWORKPROTOCOLPARSER_H

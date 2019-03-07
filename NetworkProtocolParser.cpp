@@ -3,26 +3,26 @@
 //
 
 #include <iostream>
-#include "NetworkProtocols.h"
+#include "NetworkProtocolParser.h"
 
-int NetworkProtocols::ETH_HEADER_LEN = 14;
-int NetworkProtocols::LOOP_HEADER_LEN = 4;
-int NetworkProtocols::IP_HEADER_MIN_LEN = 20;
-int NetworkProtocols::UDP_HEADER_LEN = 8;
-int NetworkProtocols::RTP_HEADER_MIN_LEN = 12;
+int NetworkProtocolParser::ETH_HEADER_LEN = 14;
+int NetworkProtocolParser::LOOP_HEADER_LEN = 4;
+int NetworkProtocolParser::IP_HEADER_MIN_LEN = 20;
+int NetworkProtocolParser::UDP_HEADER_LEN = 8;
+int NetworkProtocolParser::RTP_HEADER_MIN_LEN = 12;
 
-uint16_t NetworkProtocols::read_big_endian_16(const uint8_t *data) {
+uint16_t NetworkProtocolParser::read_big_endian_16(const uint8_t *data) {
     return data[0] << 8 | data[1];
 }
 
 
-uint32_t NetworkProtocols::read_native_endian_32(const uint8_t *data) {
+uint32_t NetworkProtocolParser::read_native_endian_32(const uint8_t *data) {
     uint32_t d = 0;
     memcpy(&d, data, 4);
     return d;
 }
 
-bool NetworkProtocols::eth_parser(const uint8_t *packet, int size, eth_header *eth) {
+bool NetworkProtocolParser::eth_parser(const uint8_t *packet, int size, eth_header *eth) {
     if (!packet || !eth) {
 //        std::cout << "packet or eth is nullptr!" << std::endl;
         return false;
@@ -39,7 +39,7 @@ bool NetworkProtocols::eth_parser(const uint8_t *packet, int size, eth_header *e
     return true;
 }
 
-bool NetworkProtocols::loop_parser(const uint8_t *packet, int size, loop_header *loop) {
+bool NetworkProtocolParser::loop_parser(const uint8_t *packet, int size, loop_header *loop) {
     if (!packet || !loop) {
         return false;
     }
@@ -52,7 +52,7 @@ bool NetworkProtocols::loop_parser(const uint8_t *packet, int size, loop_header 
     return true;
 }
 
-bool NetworkProtocols::ip_parser(const uint8_t *packet, int size, ip_header *ip) {
+bool NetworkProtocolParser::ip_parser(const uint8_t *packet, int size, ip_header *ip) {
     if (!packet || !ip) {
         return false;
     }
@@ -72,7 +72,7 @@ bool NetworkProtocols::ip_parser(const uint8_t *packet, int size, ip_header *ip)
     return true;
 }
 
-bool NetworkProtocols::udp_parser(const uint8_t *packet, int size, udp_header *udp) {
+bool NetworkProtocolParser::udp_parser(const uint8_t *packet, int size, udp_header *udp) {
     if (!packet || !udp) {
         return false;
     }
@@ -87,7 +87,7 @@ bool NetworkProtocols::udp_parser(const uint8_t *packet, int size, udp_header *u
     return true;
 }
 
-bool NetworkProtocols::rtp_parser(const uint8_t *packet, int size, rtp_header *rtp) {
+bool NetworkProtocolParser::rtp_parser(const uint8_t *packet, int size, rtp_header *rtp) {
     if (!packet || !rtp) {
         return false;
     }
