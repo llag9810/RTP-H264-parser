@@ -5,8 +5,9 @@
 #include <functional>
 #include "pcap.h"
 #include "NetworkProtocolParser.h"
+#include "RtspProcessor.h"
 
-typedef std::function<void(const rtp_info &rtp_info, const unsigned char *data, int payload_size)> ParseFunc;
+typedef std::function<void(const rtp_info &rtp_info, const unsigned char *data, size_t payload_size)> ParseFunc;
 typedef std::function<void()> LoopEndFunc;
 
 class PcapManager {
@@ -23,6 +24,7 @@ private:
     PcapManager() : pcap(nullptr), linkType(-1) {}
     ~PcapManager() { pcap_close(pcap); }
     static PcapManager *instance;
+    RtspProcessor rtspProcessor;
     pcap_t *pcap;
     int linkType;
     ParseFunc funcParse;

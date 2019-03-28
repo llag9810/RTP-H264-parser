@@ -5,14 +5,19 @@
 #ifndef RTP_PARSER_RTSPPARSER_H
 #define RTP_PARSER_RTSPPARSER_H
 
-
+#include <regex>
 #include "RtspConnectionManager.h"
+#include "NetworkProtocolParser.h"
 
-class RtspParser {
+class RtspProcessor {
 public:
-    bool parse
+    bool process(const uint8_t *packet, size_t size, AddressPair &pair);
+    RtspProcessor() {
+        _valid_rtsp_keyword = std::regex("RTSP.*OK");
+    };
 private:
     RtspConnectionManager _connectionManager;
+    std::regex _valid_rtsp_keyword;
 };
 
 

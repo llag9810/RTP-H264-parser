@@ -14,7 +14,7 @@ PcapManager *PcapManager::get_instance() {
 
 int PcapManager::init(const std::string &dev, const ParseFunc &Parsef, const LoopEndFunc &LoopEndf) {
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap = pcap_open_live(dev.c_str(), BUFSIZ, 1, 2000, errbuf);
+    pcap = pcap_open_live(dev.c_str(), 2048, 1, 2000, errbuf);
     if (pcap == nullptr) {
         std::cout << "open pcap failed,error info " << errbuf << std::endl;
         return -1;
@@ -50,17 +50,7 @@ void PcapManager::get_packet(u_char *args, const struct pcap_pkthdr *header, con
                 return;
             }
 
-//            fprintf(stdout, "  eth 0x%04x", eth.type);
-//            fprintf(stdout, " %02x:%02x:%02x:%02x:%02x:%02x ->",
-//                    eth.mac_src[0], eth.mac_src[1], eth.mac_src[2],
-//                    eth.mac_src[3], eth.mac_src[4], eth.mac_src[5]);
-//
-//            fprintf(stdout, " %02x:%02x:%02x:%02x:%02x:%02x\n",
-//                    eth.mac_dst[0], eth.mac_dst[1], eth.mac_dst[2],
-//                    eth.mac_dst[3], eth.mac_dst[4], eth.mac_dst[5]);
-
             if (eth.type != 0x0800) { // not IPv4
-//                fprintf(stdout, "skipping packet: not IPv4\n");
                 return;
             }
             packet += NetworkProtocolParser::ETH_HEADER_LEN;
@@ -72,64 +62,67 @@ void PcapManager::get_packet(u_char *args, const struct pcap_pkthdr *header, con
                 return;
             }
             if (loop.family != PF_INET) {
-//                fprintf(stdout, "skipping packet: not INET\n");
                 return;
             }
-//            fprintf(stdout, "%d\n", loop.family);
             packet += NetworkProtocolParser::LOOP_HEADER_LEN;
             size -= NetworkProtocolParser::LOOP_HEADER_LEN;
             break;
         default:
-//            fprintf(stdout, "  skipping packet: unrecognized linktype %d\n", manager->linkType);
             return;
     }
+
     ip_header ip;
     if (!NetworkProtocolParser::ip_parser(packet, size, &ip)) {
-//        fprintf(stdout, "skipping packet: not IP\n");
         return;
     }
 
-    if (ip.protocol != 0x11) {
-//        fprintf(stdout, "skipping packet: not UDP\n");
-        return;
-    }
-
-//    fprintf(stdout, "IP packet: %d.%d.%d.%d -> %d.%d.%d.%d\n", \
-//    ip.src[0], ip.src[1], ip.src[2], ip.src[3], \
-//    ip.dst[0], ip.dst[1], ip.dst[2], ip.dst[3]);
     packet += ip.header_size;
     size -= ip.header_size;
 
-    udp_header udp;
-    if (!NetworkProtocolParser::udp_parser(packet, size, &udp)) {
-        //        fprintf(stdout, "skipping packet: parse UDP failed.\n");
-        return;
+    switch (ip.protocol) {
+        case 0x06: { // tcp
+            tcp_header tcp;
+            if (!NetworkProtocolParser::tcp_parser(packet, size, &tcp)) {
+                return;
+            }
+            packet += tcp.header_size;
+            size -= tcp.header_size;
+            AddressPair address = AddressPair(ip.src, tcp.src, ip.dst, tcp.dst);
+            if (!get_instance()->rtspProcessor.process(packet, size, address)) {
+                return;
+            }
+            break;
+        }
+        case 0x11: {  // udp
+            udp_header udp;
+            if (!NetworkProtocolParser::udp_parser(packet, size, &udp)) {
+                return;
+            }
+
+            packet += NetworkProtocolParser::UDP_HEADER_LEN;
+            size -= NetworkProtocolParser::UDP_HEADER_LEN;
+
+            rtp_header rtp;
+            if (!NetworkProtocolParser::rtp_parser(packet, size, &rtp)) {
+                return;
+            }
+            packet += rtp.header_size;
+            size -= rtp.header_size;
+
+            rtp_info info;
+            info.mark = rtp.mark != 0;
+            info.payload_type = rtp.type;
+            info.ssrc = rtp.ssrc;
+            info.seq = rtp.seq;
+            info.srcPort = udp.src;
+            info.dstPort = udp.dst;
+            memcpy(info.src, ip.src, 4);
+            memcpy(info.dst, ip.dst, 4);
+
+            manager->funcParse(info, packet, size);
+            break;
+        }
+        default:
+            return;
     }
-
-//    fprintf(stdout, "UDP packet: %d.%d.%d.%d:%d -> %d.%d.%d.%d:%d\n", \
-//    ip.src[0], ip.src[1], ip.src[2], ip.src[3], udp.src, \
-//    ip.dst[0], ip.dst[1], ip.dst[2], ip.dst[3], udp.dst);
-
-    packet += NetworkProtocolParser::UDP_HEADER_LEN;
-    size -= NetworkProtocolParser::UDP_HEADER_LEN;
-
-    rtp_header rtp;
-    if (!NetworkProtocolParser::rtp_parser(packet, size, &rtp)) {
-        return;
-    }
-//    fprintf(stdout, "RTP ssrc = %u, seq = %d, payload type = %d, mark = %d\n", rtp.ssrc, rtp.seq, rtp.type, rtp.mark);
-    packet += rtp.header_size;
-    size -= rtp.header_size;
-
-    rtp_info info;
-    info.mark = rtp.mark != 0;
-    info.payload_type = rtp.type;
-    info.ssrc = rtp.ssrc;
-    info.seq = rtp.seq;
-    info.srcPort = udp.src;
-    info.dstPort = udp.dst;
-    memcpy(info.src, ip.src, 4);
-    memcpy(info.dst, ip.dst, 4);
-
-    manager->funcParse(info, packet, size);
 }

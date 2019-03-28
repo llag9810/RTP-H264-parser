@@ -9,7 +9,7 @@ const int AAC = 97;
 int main(int argc, char **argv) {
     auto pcapManager = PcapManager::get_instance();
     auto h264Parser = H264parser::get_instance();
-    auto parsefunc = [=](const rtp_info &info, const u_char *data, int size) {
+    auto parsefunc = [=](const rtp_info &info, const u_char *data, size_t size) {
         switch (info.payload_type) {
             case H_264:
                 h264Parser->parse(info, data, size);

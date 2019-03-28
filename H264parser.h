@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "NetworkProtocolParser.h"
+#include "FrameCache.h"
 
 typedef struct {
     uint8_t f : 1;
@@ -21,10 +22,11 @@ class H264parser {
 public:
     static H264parser *get_instance();
     static void release();
-    void parse(const rtp_info& rtpInfo, const unsigned char *data, int size);
+    void parse(const rtp_info &rtpInfo, const unsigned char *data, size_t size);
 private:
     H264parser() = default;
     static H264parser *instance;
+    FrameCache cache;
 };
 
 

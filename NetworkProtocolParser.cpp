@@ -10,6 +10,7 @@ int NetworkProtocolParser::LOOP_HEADER_LEN = 4;
 int NetworkProtocolParser::IP_HEADER_MIN_LEN = 20;
 int NetworkProtocolParser::UDP_HEADER_LEN = 8;
 int NetworkProtocolParser::RTP_HEADER_MIN_LEN = 12;
+int NetworkProtocolParser::TCP_HEADER_MIN_LEN = 20;
 
 uint16_t NetworkProtocolParser::read_big_endian_16(const uint8_t *data) {
     return data[0] << 8 | data[1];
@@ -71,6 +72,24 @@ bool NetworkProtocolParser::ip_parser(const uint8_t *packet, int size, ip_header
     memcpy(ip->dst, packet + 16, 4);
     return true;
 }
+
+
+bool NetworkProtocolParser::tcp_parser(const uint8_t *packet, int size, tcp_header *tcp) {
+    if (!packet || !tcp) {
+        return false;
+    }
+    if (size < TCP_HEADER_MIN_LEN) {
+        return false;
+    }
+
+    tcp->src = read_big_endian_16(packet);
+    tcp->dst = read_big_endian_16(packet + 2);
+    tcp->header_size = (packet[12] & 0xF0) >> 2;
+
+    return size - tcp->header_size >= 0;
+
+}
+
 
 bool NetworkProtocolParser::udp_parser(const uint8_t *packet, int size, udp_header *udp) {
     if (!packet || !udp) {
