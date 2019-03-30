@@ -16,7 +16,7 @@ public:
     unsigned int size();
 private:
     const unsigned int initial_capacity = 1024 * 1024;
-    uint8_t *_data;
+    unsigned char *_data;
     unsigned int _size;
     unsigned int _capacity;
 };

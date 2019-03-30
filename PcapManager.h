@@ -33,5 +33,4 @@ private:
     static void get_packet(unsigned char *args, const struct pcap_pkthdr *header, const u_char *data);
 };
 
-
 #endif //RTP_PARSER_PCAPMANAGER_H

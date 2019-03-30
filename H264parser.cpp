@@ -33,7 +33,7 @@ void H264parser::parse(const rtp_info &rtpInfo, const unsigned char *data, size_
         fu_a.e = static_cast<uint8_t>((data[1] >> 6) & 0x1);
         fu_a.r = static_cast<uint8_t>((data[1] >> 5) & 0x1);
         fu_a.type = static_cast<uint8_t>((data[1]) & 0x1f);
-        fprintf(stdout, "fu_a: s = %d, e = %d, type = %d\n", fu_a.s, fu_a.e, fu_a.type);
+        // fprintf(stdout, "fu_a: s = %d, e = %d, type = %d\n", fu_a.s, fu_a.e, fu_a.type);
         if (fu_a.s == 1) {
             assert(cache.size() == 0);
             cache.add(identifier, 4);

@@ -19,11 +19,12 @@ std::string get_parameter_set(const std::string &body) {
 }
 
 std::string get_aac_config(const std::string &body) {
-    std::string keyword("sizelength");
+    std::string keyword("config=");
     auto start_pos = body.find(keyword);
     if (start_pos == std::string::npos) {
         return std::string();
     }
+    start_pos += keyword.size();
     auto end_pos = body.find("\r\n", start_pos + 1);
     return body.substr(start_pos, end_pos - start_pos);
 }
@@ -90,6 +91,8 @@ void decode_h264_sps_and_pps(std::string &encoded_string) {
     std::string encoded_pps = encoded_string.substr(comma + 1);
     auto sps = base64_decode(encoded_sps);
     auto pps = base64_decode(encoded_pps);
+
+    // TODO: H264 header callback.
     uint8_t identifier[4] = { 0, 0, 0, 1 };
     std::vector<uint8_t> cache;
     for (int i = 0; i < 4; i++) cache.push_back(identifier[i]);
@@ -102,6 +105,13 @@ void decode_h264_sps_and_pps(std::string &encoded_string) {
 }
 
 void decode_aac_info(std::string &aac_info) {
+    auto sub_info = aac_info.substr(0, 4);
+    int result = std::stoi(sub_info, nullptr, 16);
+    int profile = result >> 11;
+    int sample_freq = result >> 7 & 0xf;
+    int channel = result >> 3 & 0xf;
+    // TODO: AAC header callback.
+
 
 }
 
